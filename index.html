@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Conversor de Tibia Coins</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700&family=Alegreya+SC:wght@500;700&display=swap">
+<style>
+/* Layout: painel de pedra escura com molduras de bronze; duas guias (Conversão / Histórico). Tema único escuro por escolha. */
+:root{
+  --stone:#17130f;
+  --panel:#231c15;
+  --panel-2:#2d241b;
+  --frame:#5b4a33;
+  --gold:#e7b54a;           /* TC */
+  --gold-soft:#b8913f;
+  --parch:#efe2c6;
+  --muted:#a89677;
+  --coin:#7fc4e8;           /* Coin (gold do jogo) */
+  --ok:#8fcf7a;             /* R$ */
+  --up:#8fcf7a;
+  --down:#e07a5f;
+  --flat:#a89677;
+  --display:"Pirata One","Palatino Linotype",Georgia,serif;
+  --label:"Alegreya SC","Palatino Linotype",Georgia,serif;
+  --body:"Alegreya Sans","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(231,181,74,.12), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 2px, transparent 2px 46px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 2px, transparent 2px 46px),
+    var(--stone);
+  color:var(--parch);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.45;
+  min-height:100vh;
+}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 48px}
+
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.coin-ico{
+  width:56px;height:56px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 35% 30%, #ffe9a6, var(--gold) 45%, #8a6418 100%);
+  box-shadow:inset 0 0 0 3px rgba(90,60,10,.6), inset 0 0 0 7px rgba(255,230,160,.35), 0 4px 14px rgba(0,0,0,.6);
+  display:grid;place-items:center;font-family:var(--display);color:#5a3d0b;font-size:26px;
+}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2rem,5vw,3rem);line-height:1;margin:0;color:var(--gold);
+   text-shadow:0 2px 0 #000, 0 0 18px rgba(231,181,74,.25);text-wrap:balance}
+.sub{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+.date-chip{margin-left:auto;font-family:var(--label);letter-spacing:.06em;font-size:.85rem;color:var(--muted);
+  border:1px solid var(--frame);padding:6px 12px;border-radius:3px;background:rgba(0,0,0,.25)}
+.date-chip b{color:var(--parch);font-family:var(--body);font-variant-numeric:tabular-nums;letter-spacing:0}
+
+/* Guias */
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--frame);margin-bottom:20px;flex-wrap:wrap}
+.tab{font-family:var(--label);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.9rem;
+  color:var(--muted);background:rgba(0,0,0,.25);border:2px solid var(--frame);border-bottom:0;border-radius:4px 4px 0 0;
+  padding:9px 18px;cursor:pointer;margin-bottom:-2px}
+.tab:hover{color:var(--parch)}
+.tab[aria-selected="true"]{color:var(--gold);background:var(--panel);border-bottom:2px solid var(--panel)}
+.tab:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.tab .count{font-family:var(--body);font-weight:500;letter-spacing:0;color:var(--muted);margin-left:6px;font-size:.8rem}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+.panel{
+  background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%), var(--panel);
+  border:2px solid var(--frame);
+  outline:1px solid #000;
+  box-shadow:inset 0 0 0 1px rgba(231,181,74,.18), 0 10px 26px rgba(0,0,0,.5);
+  border-radius:4px;
+  padding:18px;
+  min-width:0;
+}
+.panel h2{font-family:var(--label);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.95rem;
+  color:var(--gold);margin:0 0 14px;display:flex;align-items:center;gap:10px}
+.panel h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--frame),transparent)}
+
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.flabel{font-family:var(--label);font-size:.82rem;letter-spacing:.05em;color:var(--muted)}
+.inbox{display:flex;align-items:stretch;background:var(--panel-2);border:1px solid #000;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 0 0 1px var(--frame);border-radius:3px;overflow:hidden}
+.inbox:focus-within{box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 0 0 2px var(--gold)}
+.inbox .pre,.inbox .suf{display:grid;place-items:center;padding:0 10px;color:var(--gold-soft);font-weight:700;font-size:.9rem;background:rgba(0,0,0,.25)}
+.inbox input,.inbox select{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--parch);
+  font:500 1.15rem var(--body);padding:10px 12px;font-variant-numeric:tabular-nums}
+.inbox input{text-align:right}
+.inbox select{cursor:pointer}
+.inbox select option{background:var(--panel-2);color:var(--parch)}
+.with-btn{display:flex;gap:8px;min-width:0}
+.with-btn .inbox{flex:1;min-width:0}
+.fetch-btn{flex:none;font-family:var(--label);font-weight:700;letter-spacing:.05em;font-size:.85rem;color:#2a1c06;cursor:pointer;
+  background:linear-gradient(180deg,#f3cf74,var(--gold) 55%,#a87c22);border:1px solid #000;box-shadow:0 0 0 1px var(--frame), inset 0 1px 0 rgba(255,255,255,.4);
+  border-radius:3px;padding:0 12px}
+.fetch-btn:hover{filter:brightness(1.08)}
+.fetch-btn:focus-visible{outline:2px solid var(--parch);outline-offset:2px}
+.fetch-btn:disabled{cursor:progress;filter:grayscale(.6) brightness(.8)}
+.fetch-msg{font-size:.88rem;margin:12px 0 0;padding:8px 10px;border-radius:3px;border:1px solid var(--frame);background:rgba(0,0,0,.25);color:var(--muted)}
+.fetch-msg.ok{color:var(--ok);border-color:rgba(143,207,122,.45)}
+.fetch-msg.err{color:var(--down);border-color:rgba(224,122,95,.45)}
+.readout{background:rgba(0,0,0,.28);border:1px dashed var(--frame);border-radius:3px;padding:10px 12px;
+  font-size:1.15rem;font-weight:500;text-align:right;font-variant-numeric:tabular-nums;color:var(--parch)}
+.hint{font-size:.78rem;color:var(--muted);margin:0}
+
+.conv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:480px){.conv{grid-template-columns:minmax(0,1fr)}}
+.res{background:var(--panel-2);border:1px solid #000;box-shadow:0 0 0 1px var(--frame);border-radius:3px;padding:10px 12px;min-width:0}
+.res span{display:block;font-family:var(--label);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.res strong{display:block;font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.res.coin strong{color:var(--coin)}
+.res.tc strong{color:var(--gold)}
+.res.brl strong{color:var(--ok)}
+.res.src{box-shadow:0 0 0 1px var(--gold-soft)}
+
+/* Variações */
+.var-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:480px){.var-list{grid-template-columns:minmax(0,1fr)}}
+.var{background:var(--panel-2);border:1px solid #000;box-shadow:0 0 0 1px var(--frame);border-radius:3px;padding:10px 12px;min-width:0}
+.var .t{display:block;font-family:var(--label);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.var .v{display:block;font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.v.up{color:var(--up)} .v.down{color:var(--down)} .v.flat{color:var(--flat)} .v.days{color:var(--parch)}
+.v small{display:block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.empty{color:var(--muted);font-size:.9rem;margin:0}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-family:var(--label);font-weight:700;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);
+   text-align:right;padding:8px 10px;border-bottom:2px solid var(--frame);white-space:nowrap}
+th.l,td.l{text-align:left}
+td{padding:7px 10px;text-align:right;border-bottom:1px solid rgba(91,74,51,.45);white-space:nowrap}
+tbody tr:nth-child(odd){background:rgba(255,255,255,.025)}
+td.c{color:var(--coin)} td.t{color:var(--gold)} td.r{color:var(--ok)}
+tr.hit{background:rgba(231,181,74,.14)!important;box-shadow:inset 3px 0 0 var(--gold)}
+.warn{color:var(--down);font-size:.85rem;margin:10px 0 0}
+
+.hist-bar{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:14px}
+.hist-bar .field{width:min(260px,100%)}
+.hist-bar .meta{margin-left:auto;color:var(--muted);font-size:.85rem}
+.status{color:var(--muted);font-size:.8rem;margin:16px 0 0;text-align:right}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="coin-ico" aria-hidden="true">₮</div>
+    <div>
+      <h1>Conversor de Tibia Coins</h1>
+      <p class="sub">Gold (KK) ⇄ Tibia Coins ⇄ Reais</p>
+    </div>
+    <div class="date-chip">Data cálculo <b id="dataCalc">--/--/----</b></div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Guias">
+    <button class="tab" id="tab-conv" role="tab" aria-selected="true" aria-controls="pane-conv">Conversão de TC</button>
+    <button class="tab" id="tab-hist" role="tab" aria-selected="false" aria-controls="pane-hist" tabindex="-1">Histórico<span class="count" id="histCount"></span></button>
+  </div>
+
+  <!-- Guia 1: Conversão -->
+  <div id="pane-conv" role="tabpanel" aria-labelledby="tab-conv">
+    <div class="grid">
+      <div class="col">
+        <section class="panel" aria-labelledby="h-param">
+          <h2 id="h-param">Parâmetros</h2>
+          <div class="fields">
+            <div class="field">
+              <label for="p250">Valor 250 TC (R$)</label>
+              <div class="with-btn">
+                <div class="inbox"><span class="pre">R$</span><input id="p250" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-kind="money" data-param="1"></div>
+                <button type="button" class="fetch-btn" id="fetchBtn" title="Buscar o preço de 250 TC no Rei dos Coins">Buscar</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="pServ">Valor TC Servidor (Coin)</label>
+              <div class="with-btn">
+                <div class="inbox"><input id="pServ" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-kind="num" data-param="1"></div>
+                <button type="button" class="fetch-btn" id="fetchServBtn" title="Buscar a Média Preço Venda do servidor no TibiaTrade">Buscar</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="server">Servidor</label>
+              <div class="inbox"><select id="server"></select></div>
+            </div>
+            <div class="field">
+              <span class="flabel">Valor Unitário TC (R$)</span>
+              <div class="readout" id="unit">—</div>
+            </div>
+          </div>
+          <p class="fetch-msg" id="fetchMsg" role="status" aria-live="polite" hidden></p>
+          <p class="fetch-msg" id="fetchServMsg" role="status" aria-live="polite" hidden></p>
+          <p class="warn" id="warn" hidden>Informe valores maiores que zero nos dois parâmetros para calcular.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="h-var">
+          <h2 id="h-var">Variação Histórica</h2>
+          <div class="var-list" id="varList"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-c1">
+          <h2 id="h-c1">Conversor de Coin</h2>
+          <div class="field">
+            <label for="inCoin">Coin (em KK)</label>
+            <div class="inbox"><input id="inCoin" inputmode="decimal" autocomplete="off" data-kind="kk"><span class="suf">KK</span></div>
+            <p class="hint">Digite 2 para 2 KK (2.000.000 gold).</p>
+          </div>
+          <div class="conv">
+            <div class="res coin src"><span>Coin</span><strong id="c1Coin">—</strong></div>
+            <div class="res tc"><span>TC</span><strong id="c1TC">—</strong></div>
+            <div class="res brl"><span>R$</span><strong id="c1BRL">—</strong></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-c2">
+          <h2 id="h-c2">Conversor de Tibia Coin</h2>
+          <div class="field">
+            <label for="inTC">Tibia Coins (TC)</label>
+            <div class="inbox"><input id="inTC" inputmode="numeric" autocomplete="off" data-kind="int"><span class="suf">TC</span></div>
+          </div>
+          <div class="conv">
+            <div class="res tc src"><span>TC</span><strong id="c2TC">—</strong></div>
+            <div class="res coin"><span>Coin</span><strong id="c2Coin">—</strong></div>
+            <div class="res brl"><span>R$</span><strong id="c2BRL">—</strong></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="col">
+        <section class="panel" aria-labelledby="h-ref">
+          <h2 id="h-ref">Referência</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th class="l">Coin</th><th>TC</th><th>Valor (R$)</th></tr></thead>
+              <tbody id="refBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guia 2: Histórico -->
+  <div id="pane-hist" role="tabpanel" aria-labelledby="tab-hist" hidden>
+    <section class="panel" aria-labelledby="h-hist">
+      <h2 id="h-hist">Parâmetros armazenados</h2>
+      <div class="hist-bar">
+        <div class="field">
+          <label for="histFilter">Filtrar servidor</label>
+          <div class="inbox"><select id="histFilter"><option value="">Todos os servidores</option></select></div>
+        </div>
+        <span class="meta" id="histMeta"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="l">Servidor</th><th class="l">Data e Hora</th><th>Valor 250 TC (R$)</th><th>Valor TC Servidor (Coin)</th></tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="histEmpty" hidden>Nenhum registro ainda. Altere o Servidor, o Valor 250 TC ou o Valor TC Servidor na guia Conversão de TC e pressione Enter.</p>
+    </section>
+  </div>
+
+  <p class="status" id="status"></p>
+</div>
+
+<script>
+(function(){
+  const SERVERS = ["Aethera","Antica","Astera","Belobra","Blumera","Bona","Bravoria","Calmera","Cantabra","Celebra","Celesta","Citra","Collabra","Descubra","Dia","Dracobra","Eclipta","Epoca","Escura","Etebra","Ferobra","Firmera","Floribra","Gentebra","Gladera","Gladibra","Harmonia","Havera","Honbra","Hostera","Idyllia","Ignibra","Ignitera","Inabra","Issobra","Jadebra","Jinxibra","Junera","Kalanta","Kalibra","Kalimera","Kanda","Karmeya","Lobera","Luminera","Lutabra","Luzibra","Maligna","Menera","Monstera","Monza","Mystera","Nefera","Nevia","Noctalia","Oceanis","Ombra","Opulera","Ourobra","Pacera","Peloria","Penumbra","Premia","Quelibra","Quidera","Quintera","Rasteibra","Refugia","Retalia","Secura","Serdebra","Sinistra","Solidera","Sombra","Sonira","Stralis","Talera","Tempestera","Terribra","Thyria","Tornabra","Unebra","Ustebra","Venebra","Victoris","Vunira","Wickera","Wintera","Xybra","Xyla","Xymera","Yonabra","Yovera","Yubra","Zuna","Zunera"];
+  const LS_STATE = 'tibiaCoinConverter.v1';
+  const LS_HIST  = 'tibiaCoinConverter.history.v1';
+  const DEFAULTS = { server:'Descubra', p250:'52,20', pServ:'46.000', inCoin:'1,00', inTC:'1.000' };
+  const REF = [1,2,3,4,5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150];
+  const KK = 1000000;
+  const DAY = 86400000;
+  const $ = id => document.getElementById(id);
+  const numInputs = ['p250','pServ','inCoin','inTC'].map($);
+  const serverSel = $('server');
+
+  let history = [];          // [{id, server, ts, v250, serv}]
+  let stateDoc = null;       // db ref do último estado
+  let histCol = null;        // db ref do histórico
+  let writeChain = Promise.resolve();
+
+  /* ---------- formatação ---------- */
+  const fmt = (n, min, max) => new Intl.NumberFormat('pt-BR',{minimumFractionDigits:min, maximumFractionDigits:max ?? min}).format(n);
+  const brl = n => 'R$ ' + fmt(n,2);
+  const p2 = n => String(n).padStart(2,'0');
+  const dateStr = d => `${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`;
+  const dateTimeStr = d => `${dateStr(d)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function parse(s){
+    s = String(s||'').trim();
+    if(!s) return NaN;
+    if(s.includes(',')){
+      s = s.replace(/\./g,'').replace(',', '.').replace(/,/g,'');
+    } else {
+      const parts = s.split('.');
+      if(parts.length === 2 && parts[1].length !== 3) s = parts.join('.');
+      else s = parts.join('');
+    }
+    const n = parseFloat(s);
+    return isFinite(n) ? n : NaN;
+  }
+
+  /* ---------- estado salvo ---------- */
+  function currentState(){
+    const s = { server: serverSel.value };
+    numInputs.forEach(el => s[el.id] = el.value);
+    return s;
+  }
+  function applyState(s){
+    if(!s) return;
+    if(typeof s.server === 'string' && SERVERS.includes(s.server)) serverSel.value = s.server;
+    numInputs.forEach(el => { if(typeof s[el.id] === 'string') el.value = s[el.id].replace(/[^0-9.,]/g,''); });
+  }
+  function loadLocal(){
+    try { applyState(JSON.parse(localStorage.getItem(LS_STATE) || 'null')); } catch(e){}
+    try {
+      const h = JSON.parse(localStorage.getItem(LS_HIST) || '[]');
+      if(Array.isArray(h)) history = h.filter(r => r && typeof r.ts === 'number');
+    } catch(e){}
+  }
+  let saveTimer = null;
+  function saveState(){
+    const s = currentState();
+    try { localStorage.setItem(LS_STATE, JSON.stringify(s)); } catch(e){}
+    if(stateDoc){
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        writeChain = writeChain.then(() => stateDoc.set({...s, updatedAt: Date.now()})).catch(()=>{});
+      }, 700);
+    }
+  }
+  function saveLocalHistory(){
+    try { localStorage.setItem(LS_HIST, JSON.stringify(history)); } catch(e){}
+  }
+
+  /* ---------- histórico ---------- */
+  const same = (a,b) => Math.abs(a-b) < 0.005;
+  const entriesFor = server => history.filter(r => r.server === server).sort((a,b) => b.ts - a.ts);
+
+  function commitParams(){
+    const server = serverSel.value;
+    const v250 = Math.round(parse($('p250').value)*100)/100;
+    const serv = Math.round(parse($('pServ').value)*100)/100;
+    if(!(v250 > 0) || !(serv > 0)) return;
+    const last = entriesFor(server)[0];
+    if(last && same(last.v250, v250) && same(last.serv, serv)) return; // nada mudou para este servidor
+    const entry = { server, ts: Date.now(), v250, serv };
+    if(histCol){
+      const ref = histCol.doc();
+      history.push({ id: ref.id, ...entry });   // aparece já; o snapshot confirma
+      writeChain = writeChain.then(() => ref.set(entry)).catch(e => {
+        setStatus(e && e.code === 'quota_exceeded' ? 'O histórico atingiu o limite de armazenamento.' : 'Não foi possível salvar o histórico agora. Ele ficou salvo neste navegador.');
+      });
+    } else {
+      history.push({ id: 'l' + entry.ts, ...entry });
+    }
+    saveLocalHistory();
+    renderAll();
+  }
+
+  const noData = title => `<div class="var"><span class="t">${title}</span><span class="v flat">—<small>Sem registro</small></span></div>`;
+
+  function variationHTML(title, cur, refVal){
+    if(!(cur > 0) || !(refVal > 0)) return noData(title);
+    const pct = (cur - refVal) / refVal * 100;
+    const cls = Math.abs(pct) < 0.005 ? 'flat' : pct > 0 ? 'up' : 'down';
+    const icon = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '■';
+    const word = cls === 'up' ? 'Aumento' : cls === 'down' ? 'Queda' : 'Estável';
+    return `<div class="var"><span class="t">${title}</span><span class="v ${cls}">${icon} ${fmt(Math.abs(pct),2)}%<small>${word}</small></span></div>`;
+  }
+
+  function renderVariation(v250, serv){
+    const server = serverSel.value;
+    const list = entriesFor(server);
+    // Se o registro mais recente já é o valor atual, compara com o anterior a ele.
+    let ref = list[0];
+    if(ref && same(ref.v250, Math.round(v250*100)/100) && same(ref.serv, Math.round(serv*100)/100)) ref = list[1];
+
+    let period = noData('Período');
+    if(ref){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(ref.ts); d.setHours(0,0,0,0);
+      const days = Math.round((today - d) / DAY);
+      period = `<div class="var"><span class="t">Período</span><span class="v days">${days} ${days === 1 ? 'dia' : 'dias'}<small>desde ${dateStr(new Date(ref.ts))}</small></span></div>`;
+    }
+
+    $('varList').innerHTML =
+      variationHTML('Valor 250 TC', v250, ref && ref.v250) +
+      variationHTML('Valor TC Servidor', serv, ref && ref.serv) +
+      period;
+  }
+
+  function renderHistoryTab(){
+    const sel = $('histFilter');
+    const withData = SERVERS.filter(s => history.some(r => r.server === s));
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">Todos os servidores</option>' + withData.map(s => `<option value="${s}">${s}</option>`).join('');
+    sel.value = withData.includes(prev) ? prev : '';
+    const filter = sel.value;
+    const rows = history.filter(r => !filter || r.server === filter).sort((a,b) => b.ts - a.ts);
+    $('histCount').textContent = history.length ? `(${history.length})` : '';
+    $('histMeta').textContent = rows.length ? `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}` : '';
+    $('histEmpty').hidden = rows.length > 0;
+    $('histBody').innerHTML = rows.map(r => `<tr>
+      <td class="l">${esc(r.server)}</td>
+      <td class="l">${dateTimeStr(new Date(r.ts))}</td>
+      <td class="r">${brl(r.v250)}</td>
+      <td class="c">${fmt(r.serv,0,2)}</td></tr>`).join('');
+  }
+
+  /* ---------- cálculos ---------- */
+  function calc(){
+    const v250 = parse($('p250').value);
+    const serv = parse($('pServ').value);
+    const coinKK = parse($('inCoin').value);
+    const tcIn = Math.round(parse($('inTC').value));
+    const unit = v250 / 250;
+    const ok = v250 > 0 && serv > 0;
+    $('warn').hidden = ok;
+    $('unit').textContent = v250 > 0 ? 'R$ ' + fmt(unit,4) : '—';
+
+    if(!isNaN(coinKK)){
+      $('c1Coin').textContent = fmt(coinKK,2) + ' KK';
+      if(ok){
+        const tc = coinKK * KK / serv;
+        $('c1TC').textContent = fmt(tc,2);
+        $('c1BRL').textContent = brl(tc * unit);
+      } else { $('c1TC').textContent = '—'; $('c1BRL').textContent = '—'; }
+    } else { ['c1Coin','c1TC','c1BRL'].forEach(id => $(id).textContent = '—'); }
+
+    if(!isNaN(tcIn)){
+      $('c2TC').textContent = fmt(tcIn,0);
+      $('c2Coin').textContent = serv > 0 ? fmt(tcIn * serv / KK,2) + ' KK' : '—';
+      $('c2BRL').textContent = v250 > 0 ? brl(tcIn * unit) : '—';
+    } else { ['c2TC','c2Coin','c2BRL'].forEach(id => $(id).textContent = '—'); }
+
+    $('refBody').innerHTML = REF.map(k => {
+      const tc = ok ? k * KK / serv : NaN;
+      const hit = !isNaN(coinKK) && Math.abs(coinKK - k) < 1e-9 ? ' class="hit"' : '';
+      return `<tr${hit}><td class="c l">${fmt(k,1)} KK</td><td class="t">${ok ? fmt(tc,1) : '—'}</td><td class="r">${ok ? brl(tc*unit) : '—'}</td></tr>`;
+    }).join('');
+
+    renderVariation(v250, serv);
+  }
+  function renderAll(){ calc(); renderHistoryTab(); }
+
+  /* ---------- entradas ---------- */
+  function sanitize(el){
+    const before = el.value;
+    const pos = el.selectionStart ?? before.length;
+    const clean = before.replace(/[^0-9.,]/g,'');
+    if(clean !== before){
+      const removedBefore = before.slice(0,pos).replace(/[0-9.,]/g,'').length;
+      el.value = clean;
+      const p = Math.max(0, pos - removedBefore);
+      try { el.setSelectionRange(p,p); } catch(e){}
+    }
+  }
+  function formatField(el){
+    const n = parse(el.value);
+    if(isNaN(n)) return;
+    switch(el.dataset.kind){
+      case 'money': el.value = fmt(n,2); break;
+      case 'num':   el.value = fmt(n,0,2); break;
+      case 'kk':    el.value = fmt(n,2); break;
+      case 'int':   el.value = fmt(Math.round(n),0); break;
+    }
+  }
+  function commitField(el){
+    formatField(el);
+    calc();
+    saveState();
+    if(el.dataset.param) commitParams();
+  }
+
+  // Enter confirma o campo, recalcula e leva ao próximo campo.
+  const ORDER = ['p250','pServ','server','inCoin','inTC'].map($);
+  function nextField(el){
+    const i = ORDER.indexOf(el);
+    const nx = ORDER[i + 1];
+    if(nx){ nx.focus(); if(nx.select) nx.select(); }
+    else if(el.select) el.select();
+  }
+  numInputs.forEach(el => {
+    el.addEventListener('beforeinput', e => {
+      if(e.data && /[^0-9.,]/.test(e.data) && e.inputType && e.inputType.startsWith('insert')) e.preventDefault();
+    });
+    el.addEventListener('input', () => { sanitize(el); calc(); saveState(); });
+    el.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.keyCode === 13){ e.preventDefault(); commitField(el); nextField(el); }
+    });
+    el.addEventListener('change', () => commitField(el));
+  });
+  function commitServer(){ calc(); saveState(); commitParams(); }
+  serverSel.addEventListener('change', commitServer);
+  serverSel.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.keyCode === 13){ e.preventDefault(); commitServer(); nextField(serverSel); }
+  });
+  $('histFilter').addEventListener('change', renderHistoryTab);
+
+  /* ---------- guias ---------- */
+  const tabs = [$('tab-conv'), $('tab-hist')];
+  function selectTab(btn, focus){
+    tabs.forEach(t => {
+      const on = t === btn;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+      $(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    if(focus) btn.focus();
+  }
+  tabs.forEach((t,i) => {
+    t.addEventListener('click', () => selectTab(t));
+    t.addEventListener('keydown', e => {
+      if(e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ e.preventDefault(); selectTab(tabs[(i + 1) % 2], true); }
+    });
+  });
+  if(location.hash === '#historico') selectTab($('tab-hist'));
+
+  function setStatus(msg){ $('status').textContent = msg || ''; }
+
+  /* ---------- armazenamento na conta (db) ---------- */
+  async function connectDb(){
+    try{
+      if(!window.claude || !window.claude.use) return;
+      const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+      if(!db || !user) return;
+      const uid = await user.id();
+      if(!uid) return;
+      stateDoc = db.doc('data/users/' + uid + '/state');
+      histCol = stateDoc.collection('history');
+
+      const snap = await stateDoc.get().catch(() => null);
+      if(snap && snap.exists){
+        const active = document.activeElement;
+        if(!(active && numInputs.includes(active))){ applyState(snap.data()); numInputs.forEach(formatField); }
+      }
+
+      let migrated = false;
+      histCol.orderBy('ts','desc').limit(1000).onSnapshot(qs => {
+        const remote = qs.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => typeof r.ts === 'number');
+        // Leva para a conta registros que só existiam neste navegador (uma vez).
+        if(!migrated){
+          migrated = true;
+          const ids = new Set(remote.map(r => r.id));
+          const keys = new Set(remote.map(r => r.server + '|' + r.ts));
+          history.filter(r => !ids.has(r.id) && !keys.has(r.server + '|' + r.ts)).forEach(r => {
+            const { id, ...body } = r;
+            const ref = histCol.doc();
+            remote.push({ id: ref.id, ...body });
+            writeChain = writeChain.then(() => ref.set(body)).catch(()=>{});
+          });
+        }
+        history = remote;
+        saveLocalHistory();
+        renderAll();
+      }, () => setStatus('Histórico salvo apenas neste navegador.'));
+    }catch(e){ /* segue com o armazenamento do navegador */ }
+  }
+
+  /* ---------- busca automática no Rei dos Coins ---------- */
+  const SITE = 'https://www.reidoscoins.com.br/Tibia/Tibia-Coins';
+  const BROWSER = 'host:claude_browser';
+  const fetchBtn = $('fetchBtn');
+  const fetchMsg = $('fetchMsg');
+
+  function showMsg(el, kind, text){
+    el.hidden = false;
+    el.className = 'fetch-msg' + (kind ? ' ' + kind : '');
+    el.textContent = text;
+  }
+  const showFetch = (kind, text) => showMsg(fetchMsg, kind, text);
+  function resultText(res){
+    if(!res) return '';
+    if(typeof res.payload === 'string') return res.payload;
+    const blocks = Array.isArray(res.content) ? res.content : [];
+    return blocks.filter(b => b && b.type === 'text').map(b => b.text).join('\n') ||
+      (res.payload != null ? JSON.stringify(res.payload) : '');
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function readPrice(text){
+    const m = /heading\s+"R\$\s*([\d.]+,\d{2})"/.exec(text) || /R\$\s*([\d.]+,\d{2})/.exec(text);
+    return m ? parse(m[1]) : NaN;
+  }
+  function quantityRef(text){
+    // A caixa de quantidade visível vem logo após o campo "Quantidade Produto" e mostra o valor atual como nome.
+    const lines = text.split('\n');
+    const i = lines.findIndex(l => /textbox\s+"Quantidade Produto"/i.test(l));
+    if(i >= 0){
+      for(let j = i + 1; j < Math.min(lines.length, i + 4); j++){
+        const m = /textbox\s+"(\d+)"\s+\[(ref_\d+)\]/.exec(lines[j]);
+        if(m) return m[2];
+      }
+    }
+    const m = /textbox\s+"\d+"\s+\[(ref_\d+)\]\s+type="text"/.exec(text);
+    return m ? m[1] : null;
+  }
+  function explainError(e){
+    const code = e && e.code;
+    switch(code){
+      case 'server_not_connected':
+      case 'not_granted':
+      case 'capability_disabled':
+      case 'capability_removed':
+        return 'A busca automática usa o navegador do app Claude para desktop. Abra esta página no app (em uma sessão do Cowork) e tente de novo.';
+      case 'not_in_manifest':
+        return 'O acesso ao navegador foi recusado para esta página. Libere em Permissões da página e tente de novo.';
+      case 'cancelled':
+      case 'approval_required':
+        return 'A ação no navegador não foi aprovada. Clique em Buscar e aprove o acesso ao site para continuar.';
+      case 'tool_error':
+        return 'O navegador não conseguiu concluir a busca: ' + (e.message || 'o site não respondeu ou não foi liberado.') ;
+      case 'server_unavailable':
+      case 'upstream_error':
+        return 'O navegador do app não respondeu a tempo. Verifique se o app Claude está aberto e tente de novo.';
+      default:
+        return (e && e.message) ? e.message : 'Erro desconhecido ao buscar o valor.';
+    }
+  }
+
+  async function fetchPrice(){
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = 'Buscando…';
+    showFetch('', 'Abrindo o site Rei dos Coins e ajustando a quantidade para 250 TC…');
+    try{
+      const mcp = window.claude && window.claude.use ? await claude.use('mcp') : null;
+      if(!mcp) throw { code: 'not_granted' };
+      const call = (tool, input) => mcp.callTool(BROWSER, tool, input, { cache: false });
+
+      // 1. Abre o site em uma aba nova do navegador do app
+      const opened = resultText(await call('preview_start', { url: SITE }));
+      const tm = /tabId[^A-Za-z0-9_-]*([A-Za-z0-9_-]+)/.exec(opened);
+      const tab = tm ? { tabId: tm[1] } : {};
+
+      // 2. Localiza a caixa de quantidade e o preço inicial
+      let ref = null, initial = NaN;
+      for(let t = 0; t < 5 && !ref; t++){
+        if(t) await sleep(1200);
+        ref = quantityRef(resultText(await call('find', { query: 'textbox', ...tab })));
+      }
+      if(!ref) throw { code: 'parse', message: 'Não encontrei o campo de quantidade no site. A página pode ter mudado de layout.' };
+      initial = readPrice(resultText(await call('find', { query: 'R$', ...tab })));
+
+      // 3. Muda a quantidade para 250
+      await call('form_input', { ref, value: '250', action_summary: 'Define a quantidade de Tibia Coins como 250', ...tab });
+
+      // 4. Aguarda o site recalcular e lê o preço
+      let price = NaN, qtyOk = false;
+      for(let t = 0; t < 8; t++){
+        await sleep(1000);
+        const boxes = resultText(await call('find', { query: 'textbox', ...tab }));
+        qtyOk = /textbox\s+"250"/.test(boxes);
+        price = readPrice(resultText(await call('find', { query: 'R$', ...tab })));
+        if(qtyOk && price > 0 && price !== initial) break;
+      }
+      if(!qtyOk) throw { code: 'parse', message: 'O site não aceitou a quantidade 250. Tente de novo em instantes.' };
+      if(!(price > 0)) throw { code: 'parse', message: 'Não encontrei o preço em R$ na página do site.' };
+      if(price < 10 || price > 500) throw { code: 'parse', message: 'O valor lido (' + brl(price) + ') parece fora do esperado para 250 TC. O campo não foi alterado.' };
+
+      $('p250').value = fmt(price, 2);
+      calc(); saveState(); commitParams();
+      showFetch('ok', 'Valor atualizado com sucesso: ' + brl(price) + ' por 250 TC no Rei dos Coins, em ' + dateTimeStr(new Date()) + '.');
+    }catch(e){
+      showFetch('err', 'Não foi possível buscar o valor. ' + explainError(e));
+    }finally{
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = 'Buscar';
+    }
+  }
+  fetchBtn.addEventListener('click', fetchPrice);
+
+  /* ---------- busca automática no TibiaTrade (Média Preço Venda do servidor) ---------- */
+  const TT_SITE = 'https://tibiatrade.gg/pt/tc-to-gold';
+  const fetchServBtn = $('fetchServBtn');
+  const fetchServMsg = $('fetchServMsg');
+  const isNum = s => /^\d{1,3}(\.\d{3})*$|^\d+$/.test(s);
+
+  // Lê a tabela "Servidor | Média Preço Compra | Maior Preço Compra | Média Preço Venda | Menor Preço Venda".
+  function readServerSell(text, server){
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const hStart = lines.findIndex(l => /^Servidor$/i.test(l));
+    if(hStart < 0) return { status: 'no-table' };
+    const headers = [];
+    let k = hStart + 1;
+    while(k < lines.length && !isNum(lines[k]) && !SERVERS.includes(lines[k]) && headers.length < 8){ headers.push(lines[k]); k++; }
+    const col = headers.findIndex(h => /m[ée]dia\s+pre[çc]o\s+venda/i.test(h));
+    if(col < 0) return { status: 'no-column' };
+    for(let i = k; i < lines.length; i++){
+      if(lines[i].toLowerCase() !== server.toLowerCase()) continue;
+      const vals = lines.slice(i + 1, i + 1 + headers.length);
+      if(vals.length === headers.length && vals.every(isNum)) return { status: 'ok', value: parse(vals[col]) };
+    }
+    return { status: 'no-server' };
+  }
+
+  async function fetchServerPrice(){
+    const server = serverSel.value;
+    fetchServBtn.disabled = true;
+    fetchServBtn.textContent = 'Buscando…';
+    showMsg(fetchServMsg, '', `Abrindo o TibiaTrade e buscando a Média Preço Venda de ${server}…`);
+    try{
+      const mcp = window.claude && window.claude.use ? await claude.use('mcp') : null;
+      if(!mcp) throw { code: 'not_granted' };
+      const call = (tool, input) => mcp.callTool(BROWSER, tool, input, { cache: false });
+
+      const opened = resultText(await call('preview_start', { url: TT_SITE }));
+      const tm = /tabId[^A-Za-z0-9_-]*([A-Za-z0-9_-]+)/.exec(opened);
+      const tab = tm ? { tabId: tm[1] } : {};
+
+      let r = { status: 'no-table' };
+      for(let t = 0; t < 6 && r.status !== 'ok' && r.status !== 'no-server'; t++){
+        if(t) await sleep(1500);
+        r = readServerSell(resultText(await call('get_page_text', { max_chars: 200000, ...tab })), server);
+      }
+      if(r.status === 'no-server') throw { code: 'parse', message: `O servidor ${server} não aparece na tabela do TibiaTrade.` };
+      if(r.status === 'no-column') throw { code: 'parse', message: 'Não encontrei a coluna "Média Preço Venda" no site. A página pode ter mudado de layout.' };
+      if(r.status !== 'ok') throw { code: 'parse', message: 'A tabela de preços do TibiaTrade não carregou. Tente de novo em instantes.' };
+      const v = r.value;
+      if(!(v >= 1000 && v <= 500000)) throw { code: 'parse', message: `O valor lido (${fmt(v,0)}) parece fora do esperado. O campo não foi alterado.` };
+
+      if(serverSel.value !== server) throw { code: 'parse', message: 'O servidor foi trocado durante a busca. Clique em Buscar de novo.' };
+      $('pServ').value = fmt(v, 0, 2);
+      calc(); saveState(); commitParams();
+      showMsg(fetchServMsg, 'ok', `Valor atualizado com sucesso: ${fmt(v,0)} gold por TC (Média Preço Venda de ${server} no TibiaTrade), em ${dateTimeStr(new Date())}.`);
+    }catch(e){
+      showMsg(fetchServMsg, 'err', 'Não foi possível buscar o Valor TC Servidor. ' + explainError(e));
+    }finally{
+      fetchServBtn.disabled = false;
+      fetchServBtn.textContent = 'Buscar';
+    }
+  }
+  fetchServBtn.addEventListener('click', fetchServerPrice);
+
+  /* ---------- início ---------- */
+  serverSel.innerHTML = SERVERS.map(s => `<option value="${s}">${s}</option>`).join('');
+  serverSel.value = DEFAULTS.server;
+  numInputs.forEach(el => el.value = DEFAULTS[el.id]);
+  loadLocal();
+  numInputs.forEach(formatField);
+  $('dataCalc').textContent = dateStr(new Date());
+  renderAll();
+  connectDb();
+})();
+</script>
+
+</body>
+</html>
