@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Conversor de Tibia Coins</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700&family=Alegreya+SC:wght@500;700&display=swap">
+<link rel="stylesheet" href="src/assets/styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="coin-ico" aria-hidden="true">₮</div>
+    <div>
+      <h1>Conversor de Tibia Coins</h1>
+      <p class="sub">Gold (KK) ⇄ Tibia Coins ⇄ Reais</p>
+    </div>
+    <div class="date-chip">Data cálculo <b id="dataCalc">--/--/----</b></div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Guias">
+    <button class="tab" id="tab-conv" role="tab" aria-selected="true" aria-controls="pane-conv">Conversão de TC</button>
+    <button class="tab" id="tab-hist" role="tab" aria-selected="false" aria-controls="pane-hist" tabindex="-1">Histórico<span class="count" id="histCount"></span></button>
+  </div>
+
+  <!-- Guia 1: Conversão -->
+  <div id="pane-conv" role="tabpanel" aria-labelledby="tab-conv">
+    <div class="grid">
+      <div class="col">
+        <section class="panel" aria-labelledby="h-param">
+          <h2 id="h-param">Parâmetros</h2>
+          <div class="fields">
+            <div class="field">
+              <label for="p250">Valor 250 TC (R$)</label>
+              <div class="with-btn">
+                <div class="inbox"><span class="pre">R$</span><input id="p250" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-kind="money" data-param="1"></div>
+                <button type="button" class="fetch-btn" id="fetchBtn" title="Buscar o preço de 250 TC no Rei dos Coins">Buscar</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="pServ">Valor TC Servidor (Coin)</label>
+              <div class="with-btn">
+                <div class="inbox"><input id="pServ" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-kind="num" data-param="1"></div>
+                <button type="button" class="fetch-btn" id="fetchServBtn" title="Buscar a Média Preço Venda do servidor no TibiaTrade">Buscar</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="server">Servidor</label>
+              <div class="inbox"><select id="server"></select></div>
+            </div>
+            <div class="field">
+              <span class="flabel">Valor Unitário TC (R$)</span>
+              <div class="readout" id="unit">—</div>
+            </div>
+          </div>
+          <p class="fetch-msg" id="fetchMsg" role="status" aria-live="polite" hidden></p>
+          <p class="fetch-msg" id="fetchServMsg" role="status" aria-live="polite" hidden></p>
+          <p class="warn" id="warn" hidden>Informe valores maiores que zero nos dois parâmetros para calcular.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="h-var">
+          <h2 id="h-var">Variação Histórica</h2>
+          <div class="var-list" id="varList"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-c1">
+          <h2 id="h-c1">Conversor de Coin</h2>
+          <div class="field">
+            <label for="inCoin">Coin (em KK)</label>
+            <div class="inbox"><input id="inCoin" inputmode="decimal" autocomplete="off" data-kind="kk"><span class="suf">KK</span></div>
+            <p class="hint">Digite 2 para 2 KK (2.000.000 gold).</p>
+          </div>
+          <div class="conv">
+            <div class="res coin src"><span>Coin</span><strong id="c1Coin">—</strong></div>
+            <div class="res tc"><span>TC</span><strong id="c1TC">—</strong></div>
+            <div class="res brl"><span>R$</span><strong id="c1BRL">—</strong></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-c2">
+          <h2 id="h-c2">Conversor de Tibia Coin</h2>
+          <div class="field">
+            <label for="inTC">Tibia Coins (TC)</label>
+            <div class="inbox"><input id="inTC" inputmode="numeric" autocomplete="off" data-kind="int"><span class="suf">TC</span></div>
+          </div>
+          <div class="conv">
+            <div class="res tc src"><span>TC</span><strong id="c2TC">—</strong></div>
+            <div class="res coin"><span>Coin</span><strong id="c2Coin">—</strong></div>
+            <div class="res brl"><span>R$</span><strong id="c2BRL">—</strong></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="col">
+        <section class="panel" aria-labelledby="h-ref">
+          <h2 id="h-ref">Referência</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th class="l">Coin</th><th>TC</th><th>Valor (R$)</th></tr></thead>
+              <tbody id="refBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guia 2: Histórico -->
+  <div id="pane-hist" role="tabpanel" aria-labelledby="tab-hist" hidden>
+    <section class="panel" aria-labelledby="h-hist">
+      <h2 id="h-hist">Parâmetros armazenados</h2>
+      <div class="hist-bar">
+        <div class="field">
+          <label for="histFilter">Filtrar servidor</label>
+          <div class="inbox"><select id="histFilter"><option value="">Todos os servidores</option></select></div>
+        </div>
+        <span class="meta" id="histMeta"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="l">Servidor</th><th class="l">Data e Hora</th><th>Valor 250 TC (R$)</th><th>Valor TC Servidor (Coin)</th></tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="histEmpty" hidden>Nenhum registro ainda. Altere o Servidor, o Valor 250 TC ou o Valor TC Servidor na guia Conversão de TC e pressione Enter.</p>
+    </section>
+  </div>
+
+  <p class="status" id="status"></p>
+</div>
+
+<!-- Endereço da API: gerado no build a partir de API_BASE_URL (veja .env.example) -->
+<script src="config.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

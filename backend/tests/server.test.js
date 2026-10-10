@@ -17,7 +17,8 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createApp, parseBRL } = require('../server');
+const { createApp } = require('../src/server');
+const { parseBRL } = require('../src/services/reiDosCoinsService');
 
 const TT_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixtures', 'tibiatrade-prices.json'), 'utf8');
 
@@ -101,10 +102,10 @@ async function setup({ rdc = {}, tt = {}, cfg = {} } = {}) {
 
 /* ------------------------------------------------------------ Rei dos Coins */
 
-test('Rei dos Coins: devolve o preço de 250 TC usando a sessão e o token da página', async () => {
+test('tibialegado_getTCValue (Rei dos Coins): devolve o preço de 250 TC usando a sessão e o token da página', async () => {
   const t = await setup();
   try {
-    const r = await t.get('/api/preco-250tc');
+    const r = await t.get('/api/tibialegado_getTCValue');
     assert.equal(r.status, 200);
     assert.equal(r.body.ok, true);
     assert.equal(r.body.valor, 52.08);
@@ -118,11 +119,11 @@ test('Rei dos Coins: devolve o preço de 250 TC usando a sessão e o token da p�
   } finally { await t.teardown(); }
 });
 
-test('Rei dos Coins: segunda consulta vem do cache, sem acessar o site', async () => {
+test('tibialegado_getTCValue (Rei dos Coins): segunda consulta vem do cache, sem acessar o site', async () => {
   const t = await setup();
   try {
-    await t.get('/api/preco-250tc');
-    const r = await t.get('/api/preco-250tc');
+    await t.get('/api/tibialegado_getTCValue');
+    const r = await t.get('/api/tibialegado_getTCValue');
     assert.equal(r.body.cache, true);
     assert.equal(r.body.valor, 52.08);
     assert.equal(t.rdcState.pageHits, 1);
@@ -130,18 +131,18 @@ test('Rei dos Coins: segunda consulta vem do cache, sem acessar o site', async (
   } finally { await t.teardown(); }
 });
 
-test('Rei dos Coins: usa o preço promocional quando existe', async () => {
+test('tibialegado_getTCValue (Rei dos Coins): usa o preço promocional quando existe', async () => {
   const t = await setup({ rdc: { special: true } });
   try {
-    const r = await t.get('/api/preco-250tc');
+    const r = await t.get('/api/tibialegado_getTCValue');
     assert.equal(r.body.valor, 52.08);
   } finally { await t.teardown(); }
 });
 
-test('Rei dos Coins: "Não autorizado" tenta uma vez com sessão nova e depois devolve erro claro', async () => {
+test('tibialegado_getTCValue (Rei dos Coins): "Não autorizado" tenta uma vez com sessão nova e depois devolve erro claro', async () => {
   const t = await setup({ rdc: { mode: 'sempre_nao_autorizado' } });
   try {
-    const r = await t.get('/api/preco-250tc');
+    const r = await t.get('/api/tibialegado_getTCValue');
     assert.equal(r.status, 502);
     assert.equal(r.body.ok, false);
     assert.equal(r.body.codigo, 'nao_autorizado');
@@ -150,19 +151,19 @@ test('Rei dos Coins: "Não autorizado" tenta uma vez com sessão nova e depois d
   } finally { await t.teardown(); }
 });
 
-test('Rei dos Coins: página sem os dados do produto → layout_alterado', async () => {
+test('tibialegado_getTCValue (Rei dos Coins): página sem os dados do produto → layout_alterado', async () => {
   const t = await setup({ rdc: { mode: 'layout_alterado' } });
   try {
-    const r = await t.get('/api/preco-250tc');
+    const r = await t.get('/api/tibialegado_getTCValue');
     assert.equal(r.status, 502);
     assert.equal(r.body.codigo, 'layout_alterado');
   } finally { await t.teardown(); }
 });
 
-test('Rei dos Coins: site com erro 500 → site_indisponivel', async () => {
+test('tibialegado_getTCValue (Rei dos Coins): site com erro 500 → site_indisponivel', async () => {
   const t = await setup({ rdc: { mode: 'erro_500' } });
   try {
-    const r = await t.get('/api/preco-250tc');
+    const r = await t.get('/api/tibialegado_getTCValue');
     assert.equal(r.status, 502);
     assert.equal(r.body.codigo, 'site_indisponivel');
   } finally { await t.teardown(); }
@@ -170,10 +171,10 @@ test('Rei dos Coins: site com erro 500 → site_indisponivel', async () => {
 
 /* --------------------------------------------------------------- TibiaTrade */
 
-test('TibiaTrade: devolve a Média Preço Venda do servidor', async () => {
+test('tibialegado_getAvgCoinValue (TibiaTrade): devolve a Média Preço Venda do servidor', async () => {
   const t = await setup();
   try {
-    const r = await t.get('/api/tc-servidor?servidor=Descubra');
+    const r = await t.get('/api/tibialegado_getAvgCoinValue?servidor=Descubra');
     assert.equal(r.status, 200);
     assert.deepEqual(
       { ok: r.body.ok, servidor: r.body.servidor, valor: r.body.mediaPrecoVenda, data: r.body.atualizadoEm },
@@ -182,11 +183,11 @@ test('TibiaTrade: devolve a Média Preço Venda do servidor', async () => {
   } finally { await t.teardown(); }
 });
 
-test('TibiaTrade: nome do servidor sem diferenciar maiúsculas e com cache da tabela', async () => {
+test('tibialegado_getAvgCoinValue (TibiaTrade): nome do servidor sem diferenciar maiúsculas e com cache da tabela', async () => {
   const t = await setup();
   try {
-    const a = await t.get('/api/tc-servidor?servidor=descubra');
-    const b = await t.get('/api/tc-servidor?servidor=Ombra');
+    const a = await t.get('/api/tibialegado_getAvgCoinValue?servidor=descubra');
+    const b = await t.get('/api/tibialegado_getAvgCoinValue?servidor=Ombra');
     assert.equal(a.body.mediaPrecoVenda, 44610);
     assert.equal(b.body.mediaPrecoVenda, 44234);
     assert.equal(b.body.cache, true);
@@ -194,37 +195,37 @@ test('TibiaTrade: nome do servidor sem diferenciar maiúsculas e com cache da ta
   } finally { await t.teardown(); }
 });
 
-test('TibiaTrade: servidor que não está na tabela → 404', async () => {
+test('tibialegado_getAvgCoinValue (TibiaTrade): servidor que não está na tabela → 404', async () => {
   const t = await setup();
   try {
-    const r = await t.get('/api/tc-servidor?servidor=Zunera');
+    const r = await t.get('/api/tibialegado_getAvgCoinValue?servidor=Zunera');
     assert.equal(r.status, 404);
     assert.equal(r.body.codigo, 'servidor_nao_encontrado');
     assert.match(r.body.erro, /Zunera/);
   } finally { await t.teardown(); }
 });
 
-test('TibiaTrade: servidor inválido ou ausente → 400', async () => {
+test('tibialegado_getAvgCoinValue (TibiaTrade): servidor inválido ou ausente → 400', async () => {
   const t = await setup();
   try {
-    assert.equal((await t.get('/api/tc-servidor')).status, 400);
-    assert.equal((await t.get('/api/tc-servidor?servidor=' + encodeURIComponent('<script>'))).status, 400);
+    assert.equal((await t.get('/api/tibialegado_getAvgCoinValue')).status, 400);
+    assert.equal((await t.get('/api/tibialegado_getAvgCoinValue?servidor=' + encodeURIComponent('<script>'))).status, 400);
   } finally { await t.teardown(); }
 });
 
-test('TibiaTrade: tabela vazia → layout_alterado', async () => {
+test('tibialegado_getAvgCoinValue (TibiaTrade): tabela vazia → layout_alterado', async () => {
   const t = await setup({ tt: { mode: 'vazio' } });
   try {
-    const r = await t.get('/api/tc-servidor?servidor=Descubra');
+    const r = await t.get('/api/tibialegado_getAvgCoinValue?servidor=Descubra');
     assert.equal(r.status, 502);
     assert.equal(r.body.codigo, 'layout_alterado');
   } finally { await t.teardown(); }
 });
 
-test('TibiaTrade: site fora do ar → site_indisponivel', async () => {
+test('tibialegado_getAvgCoinValue (TibiaTrade): site fora do ar → site_indisponivel', async () => {
   const t = await setup({ cfg: { tibiaTradeBase: 'http://127.0.0.1:1' } });
   try {
-    const r = await t.get('/api/tc-servidor?servidor=Descubra');
+    const r = await t.get('/api/tibialegado_getAvgCoinValue?servidor=Descubra');
     assert.equal(r.status, 502);
     assert.equal(r.body.codigo, 'site_indisponivel');
   } finally { await t.teardown(); }
@@ -232,17 +233,15 @@ test('TibiaTrade: site fora do ar → site_indisponivel', async () => {
 
 /* ------------------------------------------------------------------ geral */
 
-test('Página e verificação de saúde', async () => {
+test('Raiz, verificação de saúde e rota inexistente', async () => {
   const t = await setup();
   try {
-    const page = await t.get('/');
-    assert.equal(page.status, 200);
-    assert.match(page.body, /<title>Conversor de Tibia Coins<\/title>/);
-    assert.match(page.body, /\/api\/preco-250tc/);
-    assert.match(page.body, /\/api\/tc-servidor/);
+    const root = await t.get('/');
+    assert.equal(root.status, 200);
+    assert.ok(root.body.rotas.includes('/api/tibialegado_getTCValue'));
     assert.deepEqual((await t.get('/api/health')).body, { ok: true });
-    assert.equal((await t.get('/server.js')).status, 404);
-    assert.equal((await t.get('/api/nao-existe')).status, 404);
+    assert.equal((await t.get('/api/preco-250tc')).status, 404);
+    assert.equal((await t.get('/src/server.js')).status, 404);
   } finally { await t.teardown(); }
 });
 

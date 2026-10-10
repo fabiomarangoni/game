@@ -1,59 +1,88 @@
-# Conversor de Tibia Coins
+# Tibia Legado — Conversor de Tibia Coins
 
-Página para converter **Gold (KK) ⇄ Tibia Coins ⇄ Reais** no Tibia, com um pequeno servidor
-que busca os preços atuais em outros sites.
+Converte **Gold (KK) ⇄ Tibia Coins ⇄ Reais** no Tibia. A página busca os preços atuais
+em outros sites por meio de um Web Service próprio.
 
-## Funcionalidades
+```
+game/
+├── .github/workflows/      # CI/CD: testes, build e deploy no Render
+├── backend/                # Web Service (Node.js + Express)
+│   ├── src/
+│   │   ├── controllers/    # validação de entrada, cache e respostas
+│   │   ├── routes/         # endpoints da API
+│   │   ├── services/       # busca no Rei dos Coins e no TibiaTrade
+│   │   ├── config.js
+│   │   └── server.js       # ponto de entrada
+│   ├── tests/              # testes automatizados (node:test)
+│   ├── .env.example
+│   ├── Dockerfile
+│   └── package.json
+├── frontend/               # Página (HTML/JS puro, sem framework)
+│   ├── public/             # index.html e config.js de desenvolvimento
+│   ├── scripts/            # build e servidor local
+│   ├── src/
+│   │   ├── assets/         # estilos
+│   │   ├── pages/          # tela do conversor
+│   │   ├── services/       # chamadas à API
+│   │   └── main.js         # ponto de entrada
+│   ├── .env.example
+│   ├── Dockerfile
+│   └── package.json
+├── docker-compose.yml
+├── LICENSE
+└── README.md
+```
 
-- Parâmetros: Valor 250 TC (R$), Valor TC Servidor (Coin), Servidor e Valor Unitário TC (calculado).
-- Botão **Buscar** no Valor 250 TC: preço de 250 TC no [Rei dos Coins](https://www.reidoscoins.com.br/Tibia/Tibia-Coins).
-- Botão **Buscar** no Valor TC Servidor: "Média Preço Venda" do servidor no [TibiaTrade](https://tibiatrade.gg/pt/tc-to-gold).
-- Conversor de Coin (KK → TC → R$) e Conversor de Tibia Coin (TC → KK → R$).
-- Tabela de referência de 1 KK a 150 KK.
-- Variação Histórica por servidor e guia Histórico com filtro por servidor.
-- Últimos valores e histórico ficam salvos no navegador (localStorage).
+## Web Services
 
-## Webservices
-
-| Rota | O que devolve |
-| --- | --- |
-| `GET /api/preco-250tc` | `{ ok, valor, valorTexto, quantidade, fonte, consultadoEm, cache }` |
-| `GET /api/tc-servidor?servidor=Descubra` | `{ ok, servidor, mediaPrecoVenda, atualizadoEm, fonte, consultadoEm, cache }` |
-| `GET /api/health` | `{ ok: true }` |
+| Endpoint | O que faz | Resposta |
+| --- | --- | --- |
+| `GET /api/tibialegado_getTCValue` | Preço em R$ de 250 Tibia Coins no [Rei dos Coins](https://www.reidoscoins.com.br/Tibia/Tibia-Coins) | `{ ok, valor, valorTexto, quantidade, fonte, consultadoEm, cache }` |
+| `GET /api/tibialegado_getAvgCoinValue?servidor=Descubra` | "Média Preço Venda" (gold por TC) do servidor no [TibiaTrade](https://tibiatrade.gg/pt/tc-to-gold) | `{ ok, servidor, mediaPrecoVenda, atualizadoEm, fonte, consultadoEm, cache }` |
+| `GET /api/health` | Verificação de saúde | `{ ok: true }` |
 
 Em caso de erro: `{ ok: false, codigo, erro }` com status 400, 404, 502 ou 504.
 Os resultados ficam em cache por 10 minutos (`CACHE_TTL_MS`).
 
-**Como cada busca funciona**
+- **tibialegado_getTCValue**: abre a página do produto no Rei dos Coins (que cria uma sessão e um
+  token `tp`) e envia `quantity=250` para a mesma rota interna que o site usa ao mudar a
+  quantidade, com o cookie da sessão.
+- **tibialegado_getAvgCoinValue**: lê a tabela de todos os servidores em
+  `/trpc/tibiaCoinPrice.list` (a mesma fonte da página `tc-to-gold`) e devolve
+  `sell_average_price` do servidor pedido, com a data em que o TibiaTrade atualizou o valor.
 
-- *Rei dos Coins*: o servidor abre a página do produto (que cria uma sessão e um token `tp`)
-  e envia `quantity=250` para a mesma rota interna que o site usa ao mudar a quantidade,
-  com o cookie da sessão.
-- *TibiaTrade*: o servidor lê a tabela de todos os servidores em
-  `/trpc/tibiaCoinPrice.list` (a mesma fonte da página `tc-to-gold`) e devolve a coluna
-  `sell_average_price` ("Média Preço Venda") do servidor pedido.
-
-Se algum dos sites mudar de layout, a rota responde com `codigo: "layout_alterado"` e a página
-mostra a mensagem de erro sem alterar o campo.
+Se algum site mudar de layout, a API responde `codigo: "layout_alterado"` e a página mostra
+a mensagem de erro sem alterar o campo.
 
 ## Rodar localmente
 
 ```bash
-npm install
-npm start          # http://localhost:3000
-npm test           # testes das rotas com simuladores dos dois sites
+# Backend
+cd backend && npm install && npm start      # http://localhost:3000
+npm test                                     # testes da API
+
+# Frontend (em outro terminal)
+cd frontend && npm start                     # http://localhost:8080
 ```
+
+Ou tudo junto com Docker: `docker compose up --build`.
 
 ## Publicar no Render
 
-1. No Render, clique em **New → Blueprint** e escolha este repositório (o arquivo `render.yaml`
-   já define o serviço). Ou **New → Web Service** com:
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Health Check Path: `/api/health`
-2. Abra o endereço `https://<nome-do-serviço>.onrender.com`.
+1. **Backend** — New → *Web Service*, repositório `game`:
+   Root Directory `backend`, Build `npm install`, Start `npm start`, Health Check `/api/health`.
+   Variável `ALLOW_ORIGIN` = endereço do frontend.
+2. **Frontend** — New → *Static Site*, repositório `game`:
+   Root Directory `frontend`, Build `npm run build`, Publish Directory `dist`.
+   Variável `API_BASE_URL` = endereço do backend (ex.: `https://tibialegado-backend.onrender.com`).
+3. **CI/CD (opcional)** — em cada serviço do Render, copie o *Deploy Hook* e salve no GitHub
+   (Settings → Secrets and variables → Actions) como `RENDER_BACKEND_DEPLOY_HOOK` e
+   `RENDER_FRONTEND_DEPLOY_HOOK`; crie também a variável `API_BASE_URL`. Com isso, os workflows
+   testam e publicam a cada push. Para não publicar duas vezes, desligue o *Auto-Deploy* no Render.
 
-No plano gratuito, o serviço "dorme" após 15 minutos sem acesso e leva cerca de 1 minuto
-para acordar; a página avisa quando isso acontece.
+No plano gratuito, o backend "dorme" após 15 minutos sem acesso e leva cerca de 1 minuto para
+acordar; a página avisa quando isso acontece.
 
-Variáveis opcionais: `CACHE_TTL_MS`, `UPSTREAM_TIMEOUT_MS`, `ALLOW_ORIGIN`.
+## Licença
+
+[MIT](LICENSE)

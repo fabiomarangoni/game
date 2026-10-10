@@ -1,0 +1,24 @@
+# Roda o backend e o frontend juntos localmente:
+#   docker compose up --build
+#   Frontend: http://localhost:8080   Backend: http://localhost:3000
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      CACHE_TTL_MS: 600000
+      ALLOW_ORIGIN: "http://localhost:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_BASE_URL: http://localhost:3000
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

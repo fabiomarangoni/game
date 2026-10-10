@@ -1,0 +1,46 @@
+name: Backend — testes e deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Testes do backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  deploy:
+    name: Deploy no Render
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar o Deploy Hook do Render
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::Secret RENDER_BACKEND_DEPLOY_HOOK não configurado; deploy ignorado."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK" > /dev/null
+          echo "Deploy do backend solicitado ao Render."

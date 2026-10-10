@@ -1,0 +1,51 @@
+name: Frontend — build e deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-deploy.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build do frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verificar sintaxe dos scripts
+        run: |
+          for f in $(find src -name '*.js'); do node --input-type=module --check < "$f"; done
+      - name: Build
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: npm run build
+      - name: Conferir arquivos gerados
+        run: test -f dist/index.html && test -f dist/config.js && test -f dist/src/main.js
+
+  deploy:
+    name: Deploy no Render
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar o Deploy Hook do Render
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::Secret RENDER_FRONTEND_DEPLOY_HOOK não configurado; deploy ignorado."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK" > /dev/null
+          echo "Deploy do frontend solicitado ao Render."
